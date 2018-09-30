@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item android:id="@+id/action_revert"
+        android:icon="@android:drawable/ic_menu_revert"
+        android:title="초기화"
+        android:alphabeticShortcut="c"
+        app:showAsAction="ifRoom"/>
+    <item android:id="@+id/action_zoom"
+        android:icon="@android:drawable/ic_menu_zoom"
+        android:title="Zoom Controls"
+        android:alphabeticShortcut="z"
+        app:showAsAction="ifRoom"/>
+    <item android:id="@+id/action_my_location"
+        android:icon="@android:drawable/ic_menu_zoom"
+        android:title="내 위치"
+        android:alphabeticShortcut="l"
+        app:showAsAction="ifRoom"/>
+    <item android:id="@+id/action_test"
+        android:icon="@android:drawable/ic_menu_more"
+        android:title="옵션"
+        app:showAsAction="ifRoom">
+        <menu>
+            <group>
+                <item android:id="@+id/action_poi_data"
+                    android:title="마커 표시"
+                    android:alphabeticShortcut="p"/>
+                <item android:id="@+id/action_path_data"
+                    android:title="경로선 표시"
+                    android:alphabeticShortcut="t"/>
+                <item android:id="@+id/action_floating_data"
+                    android:title="직접 지정"
+                    android:alphabeticShortcut="f"/>
+            </group>
+        </menu>
+    </item>
+</menu>
