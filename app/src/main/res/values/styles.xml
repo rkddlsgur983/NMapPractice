@@ -5,7 +5,6 @@
 
     <style name="TranslucentStatusBar" parent="@android:style/Theme.Holo.Light">
         <item name="android:actionBarStyle">@style/TranslucentActionBar</item>
-        <item name="android:windowTranslucentNavigation">false</item>
         <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowContentOverlay">@null</item>
     </style>
@@ -21,6 +20,7 @@
         <item name="android:windowAnimationStyle">@android:style/Animation</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">#00000000</item>
+        <item name="android:windowContentOverlay">@null</item>
     </style>
 
 </resources>

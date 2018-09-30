@@ -15,8 +15,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:screenOrientation="portrait"
-        android:theme="@style/Widget.AppCompat.ActionBar">
-        <activity android:name=".MainActivity"
+        android:theme="@style/Theme.AppCompat">
+        <activity android:name=".FragmentMapActivity"
             android:configChanges="keyboardHidden|orientation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

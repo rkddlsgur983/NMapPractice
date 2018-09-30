@@ -29,4 +29,5 @@ dependencies {
     implementation 'com.naver.maps.open:naver-map-api:2.1.2@aar'
     // GPS 권한설정
     implementation 'gun0912.ted:tedpermission:2.0.0'
+    implementation 'com.android.support:design:27.1.1'
 }

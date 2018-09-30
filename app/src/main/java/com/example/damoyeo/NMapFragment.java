@@ -4,17 +4,18 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Rect;
-import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
-import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
+import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.Fragment;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.Toast;
 
 import com.gun0912.tedpermission.PermissionListener;
@@ -44,7 +45,13 @@ import com.nhn.android.mapviewer.overlay.NMapResourceProvider;
 
 import java.util.ArrayList;
 
-public class MainActivity extends FragmentActivity {
+/**
+ * NMapFragment 클래스는 NMapActivity를 상속하지 않고 NMapView만 사용하고자 하는 경우에 NMapContext를 이용한 예제임.
+ * NMapView 사용시 필요한 초기화 및 리스너 등록은 NMapActivity 사용시와 동일함.
+ */
+public class NMapFragment extends Fragment {
+    private NMapContext mMapContext;
+
     private final String TAG = "NMapViewer";
 
     private NMapController mMapController;
@@ -61,16 +68,123 @@ public class MainActivity extends FragmentActivity {
     private NMapCompassManager mMapCompassManager;
 
     private Context context;
-    private NMapContext mMapContext;
+
+    private Animation fabOpen, fabClose;
+    private Boolean isFabOpen = false;
+    private FloatingActionButton fab, fab1, fab2;
+
+    /**
+     * Fragment에 포함된 NMapView 객체를 반환함
+     */
+    private NMapView findMapView(View v) {
+        if (!(v instanceof ViewGroup)) {
+            return null;
+        }
+
+        ViewGroup vg = (ViewGroup)v;
+        if (vg instanceof NMapView) {
+            return (NMapView)vg;
+        }
+
+        for (int i = 0; i < vg.getChildCount(); i++) {
+            View child = vg.getChildAt(i);
+            if (!(child instanceof ViewGroup)) {
+                continue;
+            }
+            NMapView mapView = findMapView(child);
+            if (mapView != null) {
+                return mapView;
+            }
+        }
+        return null;
+    }
+
+    /* Fragment 라이프사이클에 따라서 NMapContext의 해당 API를 호출함 */
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        context = this;
-        mMapContext =  new NMapContext(this);
+        mMapContext =  new NMapContext(super.getActivity());
         mMapContext.onCreate();
+        this.context = getActivity();
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        //throw new IllegalArgumentException("onCreateView should be implemented in the subclass of NMapFragment.");
+        View rootView = (View) inflater.inflate(R.layout.fragment_nmap, container, false);
+        mMapView = (NMapView) rootView.findViewById(R.id.mapView);
+
+        fabOpen = AnimationUtils.loadAnimation(getActivity(), R.anim.fab_open);
+        fabClose = AnimationUtils.loadAnimation(getActivity(), R.anim.fab_close);
+
+        fab = (FloatingActionButton) rootView.findViewById(R.id.fab);
+        fab1 = (FloatingActionButton) rootView.findViewById(R.id.fab1);
+        fab2 = (FloatingActionButton) rootView.findViewById(R.id.fab2);
+
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                anim();
+            }
+        });
+
+        fab1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // 초기화
+                if (mMyLocationOverlay != null) {
+                    stopMyLocation();
+                    mapOverlayManager.removeOverlay(mMyLocationOverlay);
+                }
+
+                mMapController.setMapViewMode(NMapView.VIEW_MODE_VECTOR);
+
+                mapOverlayManager.clearOverlays();
+                testPOIdataOverlay();
+                anim();
+            }
+        });
+
+        fab2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // GPS
+                startMyLocation();
+                anim();
+            }
+        });
+
+        return rootView;
+    }
+
+    public void anim() {
+        if (isFabOpen) {
+            fab1.startAnimation(fabClose);
+            fab2.startAnimation(fabClose);
+            fab1.setClickable(false);
+            fab2.setClickable(false);
+            isFabOpen = false;
+        } else {
+            fab1.startAnimation(fabOpen);
+            fab2.startAnimation(fabOpen);
+            fab1.setClickable(true);
+            fab2.setClickable(true);
+            isFabOpen = true;
+        }
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+    }
+    @Override
+    public void onStart(){
+        super.onStart();
+
+        init();
+
+        mMapContext.onStart();
 
         PermissionListener permissionListener = new PermissionListener() {
             @Override
@@ -80,58 +194,28 @@ public class MainActivity extends FragmentActivity {
 
             @Override
             public void onPermissionDenied(ArrayList<String> deniedPermissions) {
-                finish();
+                getActivity().finish();
             }
         };
 
         // GPS 위치정보를 받기위해 권한을 설정
-        TedPermission.with(this)
+        TedPermission.with(context)
                 .setPermissionListener(permissionListener)
                 .setRationaleMessage("지도 서비스를 사용하기 위해서는 위치 접근 권한이 필요해요")
                 .setDeniedMessage("왜 거부하셨어요...\n하지만 [설정] > [권한] 에서 권한을 허용할 수 있어요.")
                 .setPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
                 .check();
-
-        init();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        mMapContext.onStart();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        mMapContext.onResume();
-    }
-    @Override
-    public void onPause() {
-        super.onPause();
-        mMapContext.onPause();
-    }
-    @Override
-    public void onStop() {
-        mMapContext.onStop();
-        super.onStop();
-    }
-
-    @Override
-    public void onDestroy() {
-        mMapContext.onDestroy();
-        super.onDestroy();
     }
 
     private void init(){
-        // create map view
-        mMapView = (NMapView) findViewById(R.id.mapView);
+        // Fragment에 포함된 NMapView 객체 찾기
+        //mMapView = findMapView(super.getView());
         if (mMapView == null) {
             throw new IllegalArgumentException("NMapFragment dose not have an instance of NMapView.");
         }
 
-        // set Client ID for Open MapViewer Library
-        mMapView.setClientId(getResources().getString(R.string.NAVER_API_KEY));
+        // NMapView mapView = (NMapView)getView().findViewById(R.id.mapView);
+        mMapView.setClientId(getResources().getString(R.string.NAVER_API_KEY));// 클라이언트 아이디 설정
 
         // initialize map view
         mMapView.setClickable(true);
@@ -145,6 +229,7 @@ public class MainActivity extends FragmentActivity {
 
         // NMapActivity를 상속하지 않는 경우에는 NMapView 객체 생성후 반드시 setupMapView()를 호출해야함.
         mMapContext.setupMapView(mMapView);
+
 
         // use map controller to zoom in/out, pan and set map center, zoom level etc.
         mMapController = mMapView.getMapController();
@@ -171,10 +256,35 @@ public class MainActivity extends FragmentActivity {
         mMapLocationManager.setOnLocationChangeListener(onMyLocationChangeListener);
 
         // compass manager
-        mMapCompassManager = new NMapCompassManager(getParent());
+        mMapCompassManager = new NMapCompassManager(getActivity());
 
         // create my location overlay
         mMyLocationOverlay = mapOverlayManager.createMyLocationOverlay(mMapLocationManager, mMapCompassManager);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mMapContext.onResume();
+    }
+    @Override
+    public void onPause() {
+        super.onPause();
+        mMapContext.onPause();
+    }
+    @Override
+    public void onStop() {
+        mMapContext.onStop();
+        super.onStop();
+    }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+    }
+    @Override
+    public void onDestroy() {
+        mMapContext.onDestroy();
+        super.onDestroy();
     }
 
     /* Test Functions */
@@ -499,79 +609,4 @@ public class MainActivity extends FragmentActivity {
             //return new NMapCalloutBasicOverlay(nMapOverlay, nMapOverlayItem, rect);
         }
     };
-
-    /**
-     * Invoked during init to give the Activity a chance to set up its Menu.
-     *
-     * @param menu the Menu to which entries may be added
-     * @return true
-     */
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        int viewMode = mMapController.getMapViewMode();
-        boolean isTraffic = mMapController.getMapViewTrafficMode();
-        menu.findItem(R.id.action_revert).setEnabled((viewMode != NMapView.VIEW_MODE_VECTOR) || isTraffic || mapOverlayManager.sizeofOverlays() > 0);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            // 초기화
-            case R.id.action_revert:
-                if (mMyLocationOverlay != null) {
-                    stopMyLocation();
-                    mapOverlayManager.removeOverlay(mMyLocationOverlay);
-                }
-
-                mMapController.setMapViewMode(NMapView.VIEW_MODE_VECTOR);
-
-                mapOverlayManager.clearOverlays();
-
-                return true;
-
-            // 현재 위치
-            case R.id.action_my_location:
-                startMyLocation();
-                return true;
-
-            // 마커 표시
-            case R.id.action_poi_data:
-                mapOverlayManager.clearOverlays();
-
-                // add POI data overlay
-                testPOIdataOverlay();
-                return true;
-
-            // 경로선 표시
-            case R.id.action_path_data:
-                mapOverlayManager.clearOverlays();
-
-                // add path data overlay
-                testPathDataOverlay();
-
-                // add path POI data overlay
-                testPathPOIdataOverlay();
-                return true;
-
-            // 직접 마커 지정
-            case R.id.action_floating_data:
-                mapOverlayManager.clearOverlays();
-                testFloatingPOIdataOverlay();
-                return true;
-        }
-        return false;
-    }
-
-    private void invalidateMenu() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            invalidateOptionsMenu();
-        }
-    }
 }
