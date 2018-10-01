@@ -1,21 +1,18 @@
 package com.example.damoyeo;
 
-import android.app.ActionBar;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 
-public class FragmentMapActivity extends FragmentActivity {
-    @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.fragment_main);
+public class NMapActivityPresenter {
+    private NMapActivity view;// 뷰
+    //모델은 각자 클래스 생성
 
+    public NMapActivityPresenter(NMapActivity view){
+        this.view = view;
         NMapFragment NMapFragment = new NMapFragment();
         NMapFragment.setArguments(new Bundle());
-        FragmentManager fm = getSupportFragmentManager();
+        FragmentManager fm = this.view.getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fm.beginTransaction();
         fragmentTransaction.add(R.id.fragmentHere, NMapFragment);
         fragmentTransaction.commit();
